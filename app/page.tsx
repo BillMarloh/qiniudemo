@@ -11,11 +11,13 @@ export default function Home() {
       <main className="relative">
         <HeroSection />
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div id="generation" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <GenerationWorkspace />
             <ThreeModelPreview />
           </div>
-          <ModelLibrary />
+          <div id="library" className="mt-16">
+            <ModelLibrary />
+          </div>
         </div>
       </main>
     </div>

@@ -15,6 +15,7 @@ import { Type, ImageIcon, Upload, Wand2, Settings, Sparkles, RotateCcw, History,
 import { ProgressStatus } from "@/components/progress-status"
 import { useGenerateModel } from "@/hooks/useGenerateModel"
 import { useModelStore } from "@/lib/store"
+import { toast } from "sonner"
 
 export function GenerationWorkspace() {
   const [activeTab, setActiveTab] = useState("text")
@@ -40,9 +41,30 @@ export function GenerationWorkspace() {
     "复古汽车模型",
   ]
 
-  const recentPrompts = ["蓝色的现代沙发", "木质餐桌，圆形", "金属质感的台灯"]
+  // 从localStorage获取历史记录
+  const [recentPrompts, setRecentPrompts] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recentPrompts')
+      return saved ? JSON.parse(saved) : []
+    }
+    return []
+  })
+
+  // 保存历史记录
+  const saveToHistory = (prompt: string) => {
+    if (prompt.trim()) {
+      const updated = [prompt, ...recentPrompts.filter(p => p !== prompt)].slice(0, 5)
+      setRecentPrompts(updated)
+      localStorage.setItem('recentPrompts', JSON.stringify(updated))
+    }
+  }
 
   const handleGenerate = async () => {
+    // 保存到历史记录
+    if (activeTab === "text" && textPrompt.trim()) {
+      saveToHistory(textPrompt)
+    }
+
     // 更新生成选项
     setGenerationOptions({
       quality: quality[0],
@@ -65,6 +87,13 @@ export function GenerationWorkspace() {
 
     if (result) {
       console.log('模型生成成功:', result)
+      // 清空输入
+      if (activeTab === "text") {
+        setTextPrompt("")
+      } else {
+        setUploadedImage(null)
+        setUploadedImageFile(null)
+      }
     }
   }
 
@@ -80,6 +109,49 @@ export function GenerationWorkspace() {
     }
   }
 
+  // 保存草稿
+  const handleSaveDraft = () => {
+    const draft = {
+      activeTab,
+      textPrompt,
+      uploadedImage,
+      quality: quality[0],
+      complexity: complexity[0],
+      style,
+      material,
+      timestamp: Date.now()
+    }
+    localStorage.setItem('generationDraft', JSON.stringify(draft))
+    toast.success('草稿已保存')
+  }
+
+  // 加载草稿
+  const handleLoadDraft = () => {
+    const saved = localStorage.getItem('generationDraft')
+    if (saved) {
+      const draft = JSON.parse(saved)
+      setActiveTab(draft.activeTab || 'text')
+      setTextPrompt(draft.textPrompt || '')
+      setUploadedImage(draft.uploadedImage || null)
+      setQuality([draft.quality || 75])
+      setComplexity([draft.complexity || 50])
+      setStyle(draft.style || 'realistic')
+      setMaterial(draft.material || 'default')
+      toast.success('草稿已加载')
+    } else {
+      toast.info('没有找到草稿')
+    }
+  }
+
+  // 清空草稿
+  const handleClearDraft = () => {
+    localStorage.removeItem('generationDraft')
+    setTextPrompt('')
+    setUploadedImage(null)
+    setUploadedImageFile(null)
+    toast.success('草稿已清空')
+  }
+
   return (
     <div className="space-y-6">
       <Card className="h-fit">
@@ -88,15 +160,23 @@ export function GenerationWorkspace() {
             <CardTitle className="flex items-center space-x-2">
               <Wand2 className="h-5 w-5 text-primary" />
               <span>生成工作台</span>
+              <Badge variant="outline" className="text-xs ml-2 bg-blue-50 text-blue-700 border-blue-200">
+                混元3D
+              </Badge>
+              {process.env.NODE_ENV === 'development' && (
+                <Badge variant="outline" className="text-xs ml-1">
+                  演示模式
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleLoadDraft} title="加载草稿">
                 <History className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleSaveDraft} title="保存草稿">
                 <Save className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleClearDraft} title="清空草稿">
                 <FolderOpen className="h-4 w-4" />
               </Button>
             </div>

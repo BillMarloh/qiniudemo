@@ -25,9 +25,10 @@ import {
   Pause,
 } from 'lucide-react'
 import * as THREE from 'three'
+import { toast } from "sonner"
 
 // 3D模型组件
-function Model({ url }: { url: string }) {
+function Model({ url, hasModel }: { url: string; hasModel: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null)
   
   // 自动旋转
@@ -36,6 +37,11 @@ function Model({ url }: { url: string }) {
       meshRef.current.rotation.y += 0.01
     }
   })
+
+  // 如果没有模型，显示备用模型
+  if (!hasModel) {
+    return <FallbackModel />
+  }
 
   // 如果URL是GLTF格式，使用useGLTF加载
   if (url.includes('.gltf') || url.includes('.glb')) {
@@ -99,12 +105,22 @@ export function ThreeModelPreview() {
 
   const handleDownload = () => {
     if (modelData?.modelUrl) {
+      // 模拟下载功能
+      toast.info(`开始下载: ${modelData.name}`)
+      
+      // 实际应用中这里会下载真实的模型文件
       const link = document.createElement('a')
       link.href = modelData.modelUrl
       link.download = `${modelData.name}.${modelData.format}`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      
+      setTimeout(() => {
+        toast.success('下载完成！')
+      }, 1000)
+    } else {
+      toast.error('没有可下载的模型')
     }
   }
 
@@ -136,6 +152,16 @@ export function ThreeModelPreview() {
             <Badge variant={modelData ? "default" : "secondary"}>
               {modelData ? "已加载" : "等待生成"}
             </Badge>
+            {modelData?.provider === 'hunyuan3d' && (
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                混元3D
+              </Badge>
+            )}
+            {process.env.NODE_ENV === 'development' && (
+              <Badge variant="outline" className="text-xs">
+                演示模式
+              </Badge>
+            )}
             <Button variant="ghost" size="sm">
               <Maximize className="h-4 w-4" />
             </Button>
@@ -159,11 +185,10 @@ export function ThreeModelPreview() {
 
             {/* 模型 */}
             <Suspense fallback={<LoadingFallback />}>
-              {modelData?.modelUrl ? (
-                <Model url={modelData.modelUrl} />
-              ) : (
-                <FallbackModel />
-              )}
+              <Model 
+                url={modelData?.modelUrl || '/api/demo-model.glb'} 
+                hasModel={!!modelData}
+              />
             </Suspense>
 
             {/* 控制器 */}

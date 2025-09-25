@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import { useModelStore } from "@/lib/store"
 import {
   Search,
   Grid3X3,
@@ -46,6 +48,118 @@ export function ModelLibrary() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("recent")
+  const { userModels, setModelData } = useModelStore()
+
+  // 模拟数据
+  const [models, setModels] = useState<Model[]>(() => [
+    {
+      id: "1",
+      name: "可爱的卡通猫咪",
+      prompt: "一只橙色毛发，绿色眼睛的卡通风格猫咪，坐着的姿势",
+      category: "动物",
+      createdAt: "2024-01-15",
+      thumbnail: "/cute-cartoon-cat.png",
+      isLiked: false,
+      downloads: 156,
+      fileSize: "2.1 MB",
+      format: "GLB"
+    },
+    {
+      id: "2",
+      name: "现代简约椅子",
+      prompt: "现代简约风格的椅子设计，木质材质，人体工学设计",
+      category: "家具",
+      createdAt: "2024-01-14",
+      thumbnail: "/modern-minimalist-chair.jpg",
+      isLiked: true,
+      downloads: 89,
+      fileSize: "3.2 MB",
+      format: "GLB"
+    },
+    {
+      id: "3",
+      name: "科幻宇宙飞船",
+      prompt: "未来主义风格的宇宙飞船，金属质感，流线型设计",
+      category: "科幻",
+      createdAt: "2024-01-13",
+      thumbnail: "/sci-fi-spaceship.jpg",
+      isLiked: false,
+      downloads: 234,
+      fileSize: "5.1 MB",
+      format: "GLB"
+    }
+  ])
+
+  // 交互功能
+  const handleSearch = () => {
+    toast.info(`搜索: ${searchQuery}`)
+  }
+
+  const handleLike = (modelId: string) => {
+    setModels(prev => prev.map(model => 
+      model.id === modelId 
+        ? { ...model, isLiked: !model.isLiked }
+        : model
+    ))
+    toast.success('收藏状态已更新')
+  }
+
+  const handleDownload = (model: Model) => {
+    toast.info(`开始下载: ${model.name}`)
+    // 模拟下载
+    setTimeout(() => {
+      setModels(prev => prev.map(m => 
+        m.id === model.id 
+          ? { ...m, downloads: m.downloads + 1 }
+          : m
+      ))
+      toast.success('下载完成！')
+    }, 1000)
+  }
+
+  const handleShare = async (model: Model) => {
+    try {
+      await navigator.share({
+        title: model.name,
+        text: model.prompt,
+        url: window.location.href,
+      })
+    } catch (error) {
+      await navigator.clipboard.writeText(window.location.href)
+      toast.success('链接已复制到剪贴板')
+    }
+  }
+
+  const handleView = (model: Model) => {
+    setModelData({
+      id: model.id,
+      name: model.name,
+      description: model.prompt,
+      modelUrl: `/api/placeholder-model.glb`,
+      thumbnailUrl: model.thumbnail,
+      createdAt: new Date(model.createdAt),
+      updatedAt: new Date(),
+      userId: 'current-user',
+      tags: [model.category],
+      format: model.format.toLowerCase(),
+      size: parseInt(model.fileSize.replace(/[^\d]/g, '')) * 1024 * 1024
+    })
+    toast.info('模型已加载到预览器')
+  }
+
+  const handleDelete = (modelId: string) => {
+    setModels(prev => prev.filter(model => model.id !== modelId))
+    toast.success('模型已删除')
+  }
+
+  const handleEdit = (modelId: string) => {
+    toast.info('打开编辑模式')
+  }
+
+  const handleCopy = (model: Model) => {
+    navigator.clipboard.writeText(model.prompt)
+    toast.success('提示词已复制到剪贴板')
+  }
 
   const categories = [
     { value: "all", label: "全部" },
@@ -181,6 +295,7 @@ export function ModelLibrary() {
                   placeholder="搜索模型名称或描述..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-10"
                 />
               </div>
@@ -255,7 +370,7 @@ export function ModelLibrary() {
                         variant="secondary"
                         size="sm"
                         className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        onClick={() => toggleLike(model.id)}
+                        onClick={() => handleLike(model.id)}
                       >
                         <Heart className={`h-4 w-4 ${model.isLiked ? "fill-red-500 text-red-500" : ""}`} />
                       </Button>
@@ -296,29 +411,29 @@ export function ModelLibrary() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleView(model)}>
                             <Eye className="mr-2 h-4 w-4" />
                             预览
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDownload(model)}>
                             <Download className="mr-2 h-4 w-4" />
                             下载
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShare(model)}>
                             <Share2 className="mr-2 h-4 w-4" />
                             分享
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(model.id)}>
                             <Edit className="mr-2 h-4 w-4" />
                             编辑
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCopy(model)}>
                             <Copy className="mr-2 h-4 w-4" />
                             复制
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(model.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             删除
                           </DropdownMenuItem>
@@ -346,7 +461,7 @@ export function ModelLibrary() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => toggleLike(model.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleLike(model.id)}>
                         <Heart className={`h-4 w-4 ${model.isLiked ? "fill-red-500 text-red-500" : ""}`} />
                       </Button>
                       <DropdownMenu>
@@ -356,15 +471,15 @@ export function ModelLibrary() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleView(model)}>
                             <Eye className="mr-2 h-4 w-4" />
                             预览
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDownload(model)}>
                             <Download className="mr-2 h-4 w-4" />
                             下载
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShare(model)}>
                             <Share2 className="mr-2 h-4 w-4" />
                             分享
                           </DropdownMenuItem>

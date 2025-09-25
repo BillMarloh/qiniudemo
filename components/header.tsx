@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Search, User, Settings, Menu, X, Cable as Cube, Home, Library, HelpCircle } from "lucide-react"
+import { Search, User, Settings, Menu, X, Cable as Cube, Home, Library, HelpCircle, LogOut, CreditCard, Bell } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,55 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { useModelStore } from "@/lib/store"
+import { toast } from "sonner"
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isLoggedIn, setIsLoggedIn] = useState(true) // 模拟登录状态
+  const [userCredits, setUserCredits] = useState(85) // 模拟用户积分
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // 搜索功能
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      toast.info(`搜索: ${searchQuery}`)
+      // 这里可以添加实际的搜索逻辑
+      console.log('搜索查询:', searchQuery)
+    }
+  }
+
+  // 导航功能
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      toast.info(`跳转到${sectionId}`)
+    }
+    setIsMobileMenuOpen(false)
+  }
+
+  // 用户操作
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    toast.success('已退出登录')
+  }
+
+  const handleProfile = () => {
+    toast.info('打开个人资料')
+  }
+
+  const handleSettings = () => {
+    toast.info('打开设置')
+  }
+
+  const handleCredits = () => {
+    toast.info('查看积分详情')
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -32,71 +78,104 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <a
-              href="#"
+            <button
+              onClick={() => scrollToSection('hero')}
               className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center space-x-2"
             >
               <Home className="h-4 w-4" />
               <span>首页</span>
-            </a>
-            <a
-              href="#"
+            </button>
+            <button
+              onClick={() => scrollToSection('generation')}
               className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center space-x-2"
             >
               <Cube className="h-4 w-4" />
               <span>生成</span>
-            </a>
-            <a
-              href="#"
+            </button>
+            <button
+              onClick={() => scrollToSection('library')}
               className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center space-x-2"
             >
               <Library className="h-4 w-4" />
               <span>模型库</span>
-            </a>
-            <a
-              href="#"
+            </button>
+            <button
+              onClick={() => scrollToSection('help')}
               className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center space-x-2"
             >
               <HelpCircle className="h-4 w-4" />
               <span>帮助</span>
-            </a>
+            </button>
           </nav>
 
           {/* Search and User Actions */}
           <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="hidden sm:flex relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="搜索模型..."
-                className="pl-10 w-64 bg-muted/50 border-border/50 focus:bg-background"
-              />
+            {/* User Credits */}
+            <div className="hidden sm:flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                <CreditCard className="h-3 w-3 mr-1" />
+                {userCredits} 积分
+              </Badge>
             </div>
 
+            {/* Search */}
+            <form onSubmit={handleSearch} className="hidden sm:flex relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="search"
+                placeholder="搜索模型..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-64 bg-muted/50 border-border/50 focus:bg-background"
+              />
+            </form>
+
             {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
-                  <User className="h-4 w-4" />
-                  <span className="sr-only">用户菜单</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>个人资料</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>设置</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <span>退出登录</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isLoggedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
+                    <User className="h-4 w-4" />
+                    <span className="sr-only">用户菜单</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">用户</p>
+                      <p className="text-xs text-muted-foreground">user@example.com</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleProfile}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>个人资料</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSettings}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>设置</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCredits}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>积分管理</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>通知</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>退出登录</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={() => toast.info('请先登录')}>
+                登录
+              </Button>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -114,40 +193,81 @@ export function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-border/40 py-4">
             <div className="flex flex-col space-y-3">
+              {/* Mobile Search */}
               <div className="px-3 pb-3">
-                <div className="relative">
+                <form onSubmit={handleSearch} className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="search" placeholder="搜索模型..." className="pl-10 bg-muted/50 border-border/50" />
-                </div>
+                  <Input 
+                    type="search" 
+                    placeholder="搜索模型..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-muted/50 border-border/50" 
+                  />
+                </form>
               </div>
-              <a
-                href="#"
+
+              {/* Mobile Credits */}
+              <div className="px-3">
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  <CreditCard className="h-3 w-3 mr-1" />
+                  {userCredits} 积分
+                </Badge>
+              </div>
+
+              {/* Mobile Navigation */}
+              <button
+                onClick={() => scrollToSection('hero')}
                 className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
               >
                 <Home className="h-4 w-4" />
                 <span>首页</span>
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
+                onClick={() => scrollToSection('generation')}
                 className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
               >
                 <Cube className="h-4 w-4" />
                 <span>生成</span>
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
+                onClick={() => scrollToSection('library')}
                 className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
               >
                 <Library className="h-4 w-4" />
                 <span>模型库</span>
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
+                onClick={() => scrollToSection('help')}
                 className="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
               >
                 <HelpCircle className="h-4 w-4" />
                 <span>帮助</span>
-              </a>
+              </button>
+
+              {/* Mobile User Actions */}
+              <div className="px-3 pt-3 border-t border-border/40">
+                <div className="flex flex-col space-y-2">
+                  <Button variant="outline" size="sm" onClick={handleProfile} className="justify-start">
+                    <User className="h-4 w-4 mr-2" />
+                    个人资料
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleSettings} className="justify-start">
+                    <Settings className="h-4 w-4 mr-2" />
+                    设置
+                  </Button>
+                  {isLoggedIn ? (
+                    <Button variant="destructive" size="sm" onClick={handleLogout} className="justify-start">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      退出登录
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => toast.info('请先登录')}>
+                      登录
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

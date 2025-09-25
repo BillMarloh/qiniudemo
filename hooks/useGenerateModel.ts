@@ -17,10 +17,12 @@ export interface ModelGenerationResult {
   id: string
   modelUrl: string
   thumbnailUrl: string
+  textureUrl?: string
   name: string
   description: string
   format: string
   size: number
+  provider?: string
 }
 
 export function useGenerateModel() {
@@ -81,7 +83,7 @@ export function useGenerateModel() {
         description: result.description,
         modelUrl: result.modelUrl,
         thumbnailUrl: result.thumbnailUrl,
-        createdAt: new Date(),
+        createdAt: new Date(result.createdAt),
         updatedAt: new Date(),
         userId: 'current-user', // 这里应该从认证状态获取
         tags: [],
@@ -91,6 +93,8 @@ export function useGenerateModel() {
 
       setModelData(modelData)
       addModel(modelData)
+      
+      console.log('模型数据已更新:', modelData)
       
       toast.success('3D模型生成成功！')
       return result

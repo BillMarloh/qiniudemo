@@ -8,8 +8,24 @@ import { Badge } from "@/components/ui/badge"
 export function HeroSection() {
   const [activeTab, setActiveTab] = useState<"text" | "image">("text")
 
+  // 跳转到生成区域
+  const scrollToGeneration = () => {
+    const element = document.getElementById('generation')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  // 跳转到模型库
+  const scrollToLibrary = () => {
+    const element = document.getElementById('library')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
+    <section id="hero" className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
@@ -47,7 +63,10 @@ export function HeroSection() {
             <Button
               size="lg"
               className="btn-hover px-8 py-4 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300"
-              onClick={() => setActiveTab("text")}
+              onClick={() => {
+                setActiveTab("text")
+                scrollToGeneration()
+              }}
             >
               <Type className="w-5 h-5 mr-2" />
               文本生成
@@ -57,7 +76,10 @@ export function HeroSection() {
               size="lg"
               variant="outline"
               className="btn-hover px-8 py-4 text-lg font-semibold border-2 hover:bg-muted/50 transition-all duration-300 bg-transparent"
-              onClick={() => setActiveTab("image")}
+              onClick={() => {
+                setActiveTab("image")
+                scrollToGeneration()
+              }}
             >
               <ImageIcon className="w-5 h-5 mr-2" />
               图片生成

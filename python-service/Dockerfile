@@ -37,6 +37,13 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 # 复制应用代码
 COPY . .
 
+# 安装混元3D包
+RUN cd hunyuan3d && pip3 install -e .
+
+# 安装纹理生成的自定义组件
+RUN cd hunyuan3d/hy3dgen/texgen/custom_rasterizer && python3 setup.py install
+RUN cd hunyuan3d/hy3dgen/texgen/differentiable_renderer && python3 setup.py install
+
 # 创建输出目录
 RUN mkdir -p outputs
 

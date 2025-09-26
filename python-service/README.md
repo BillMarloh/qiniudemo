@@ -16,14 +16,36 @@
 根据官方文档，需要先安装混元3D包：
 
 ```bash
+# 方式一：使用安装脚本 (推荐)
+# Windows
+install_hunyuan3d.bat
+
+# Linux/Mac
+chmod +x install_hunyuan3d.sh
+./install_hunyuan3d.sh
+
+# 方式二：手动安装
 # 安装PyTorch (请根据您的CUDA版本选择)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# 安装混元3D包 (需要从官方获取)
+# 安装基础依赖
 pip install -r requirements.txt
+
+# 安装混元3D包
+cd hunyuan3d
+pip install -e .
+
+# 安装纹理生成组件
+cd hy3dgen/texgen/custom_rasterizer
+python setup.py install
+cd ../../..
+
+cd hy3dgen/texgen/differentiable_renderer
+python setup.py install
+cd ../../..
 ```
 
-**注意**: `hy3dgen` 包需要从腾讯官方渠道获取，目前可能需要申请访问权限。
+**注意**: 混元3D包已通过GitHub开源版本集成，无需申请访问权限。
 
 ### 3. 启动服务
 
@@ -48,6 +70,18 @@ python hunyuan3d_service.py
 ```
 
 ### 4. 验证安装
+
+#### 测试混元3D集成
+```bash
+# 运行测试脚本
+python test_hunyuan3d.py
+```
+
+#### 启动服务
+```bash
+# 启动服务
+python hunyuan3d_service.py
+```
 
 访问 http://localhost:8000 查看服务状态
 

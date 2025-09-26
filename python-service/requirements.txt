@@ -2,7 +2,7 @@
 torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
-transformers>=4.21.0
+transformers>=4.48.0
 diffusers>=0.21.0
 accelerate>=0.20.0
 xformers>=0.0.20
@@ -15,13 +15,25 @@ scikit-image>=0.20.0
 trimesh>=3.20.0
 open3d>=0.17.0
 
+# 混元3D专用依赖
+ninja
+pybind11
+einops
+omegaconf
+pymeshlab
+pygltflib
+xatlas
+rembg
+onnxruntime
+
 # Web服务依赖
 fastapi>=0.100.0
 uvicorn>=0.22.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
 aiofiles>=23.0.0
+gradio
 
-# 混元3D专用包（需要从官方获取）
-# hy3dgen>=2.0.0  # 这个包需要从官方渠道获取
+# 混元3D包（本地安装）
+# 将通过 pip install -e ./hunyuan3d 安装
 

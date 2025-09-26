@@ -28,8 +28,9 @@ try:
     from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
     from hy3dgen.texgen import Hunyuan3DPaintPipeline
     HUNYUAN_AVAILABLE = True
-except ImportError:
-    logger.warning("混元3D包未安装，将使用模拟模式")
+    logger.info("混元3D包已成功导入")
+except ImportError as e:
+    logger.warning(f"混元3D包未安装，将使用模拟模式: {e}")
     HUNYUAN_AVAILABLE = False
 
 app = FastAPI(title="混元3D 2.0 服务", version="1.0.0")
@@ -75,19 +76,23 @@ def initialize_pipelines():
     
     try:
         logger.info("正在加载混元3D-DiT模型...")
+        # 使用Hugging Face模型路径
         geometry_pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
-            'tencent/Hunyuan3D-2'
+            'tencent/Hunyuan3D-2',
+            subfolder='hunyuan3d-dit-v2-0'
         )
         logger.info("混元3D-DiT模型加载完成")
         
         logger.info("正在加载混元3D-Paint模型...")
         texture_pipeline = Hunyuan3DPaintPipeline.from_pretrained(
-            'tencent/Hunyuan3D-2'
+            'tencent/Hunyuan3D-2',
+            subfolder='hunyuan3d-paint-v2-0'
         )
         logger.info("混元3D-Paint模型加载完成")
         
     except Exception as e:
         logger.error(f"模型加载失败: {e}")
+        logger.error("将使用模拟模式运行")
         geometry_pipeline = None
         texture_pipeline = None
 

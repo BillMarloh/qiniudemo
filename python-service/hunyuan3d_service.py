@@ -75,11 +75,11 @@ def initialize_pipelines():
         return
     
     try:
-        logger.info("正在加载混元3D-DiT模型...")
-        # 使用Hugging Face模型路径
+        logger.info("正在加载混元3D-DiT模型（mini版本）...")
+        # 使用更小的mini模型
         geometry_pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
-            'tencent/Hunyuan3D-2',
-            subfolder='hunyuan3d-dit-v2-0'
+            'tencent/Hunyuan3D-2mini',
+            subfolder='hunyuan3d-dit-v2-mini'
         )
         logger.info("混元3D-DiT模型加载完成")
         

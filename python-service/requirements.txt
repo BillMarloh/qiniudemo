@@ -5,15 +5,15 @@ torchaudio>=2.0.0
 transformers>=4.48.0
 diffusers>=0.21.0
 accelerate>=0.20.0
-xformers>=0.0.20
-triton>=2.0.0
+# xformers>=0.0.20  # 可选，可能在某些系统上有问题
+# triton>=2.0.0     # 可选，Windows上可能不可用
 opencv-python>=4.8.0
 Pillow>=9.5.0
 numpy>=1.24.0
 scipy>=1.10.0
 scikit-image>=0.20.0
 trimesh>=3.20.0
-open3d>=0.17.0
+# open3d>=0.17.0    # 可选，Python 3.13兼容性问题
 
 # 混元3D专用依赖
 ninja

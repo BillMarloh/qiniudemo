@@ -12,6 +12,7 @@ export interface ModelData {
   tags: string[]
   format: string
   size: number
+  provider?: string
 }
 
 export interface GenerationOptions {
@@ -19,6 +20,7 @@ export interface GenerationOptions {
   complexity: number
   style: string
   material: string
+  model_type?: string
 }
 
 interface ModelStore {

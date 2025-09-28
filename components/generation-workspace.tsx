@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Type, ImageIcon, Upload, Wand2, Settings, Sparkles, RotateCcw, History, Save, FolderOpen } from "lucide-react"
 import { ProgressStatus } from "@/components/progress-status"
-import { useGenerateModel } from "@/hooks/useGenerateModel"
+import { useLightweight3D } from "@/hooks/useLightweight3D"
 import { useModelStore } from "@/lib/store"
 import { toast } from "sonner"
 
@@ -26,8 +26,9 @@ export function GenerationWorkspace() {
   const [complexity, setComplexity] = useState([50])
   const [style, setStyle] = useState("realistic")
   const [material, setMaterial] = useState("default")
+  const [modelType, setModelType] = useState("shap-e")
   
-  const { generateModel, isGenerating } = useGenerateModel()
+  const { generateModel, isGenerating } = useLightweight3D()
   const { progress, setProgress, setGenerationOptions } = useModelStore()
 
   const presetPrompts = [
@@ -42,13 +43,17 @@ export function GenerationWorkspace() {
   ]
 
   // 从localStorage获取历史记录
-  const [recentPrompts, setRecentPrompts] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('recentPrompts')
-      return saved ? JSON.parse(saved) : []
+  const [recentPrompts, setRecentPrompts] = useState<string[]>([])
+  const [isClient, setIsClient] = useState(false)
+
+  // 客户端挂载后加载localStorage数据
+  useEffect(() => {
+    setIsClient(true)
+    const saved = localStorage.getItem('recentPrompts')
+    if (saved) {
+      setRecentPrompts(JSON.parse(saved))
     }
-    return []
-  })
+  }, [])
 
   // 保存历史记录
   const saveToHistory = (prompt: string) => {
@@ -70,7 +75,8 @@ export function GenerationWorkspace() {
       quality: quality[0],
       complexity: complexity[0],
       style,
-      material
+      material,
+      model_type: modelType,
     })
 
     // 调用API生成模型
@@ -81,7 +87,8 @@ export function GenerationWorkspace() {
         quality: quality[0],
         complexity: complexity[0],
         style,
-        material
+        material,
+        model_type: modelType,
       }
     })
 
@@ -160,8 +167,8 @@ export function GenerationWorkspace() {
             <CardTitle className="flex items-center space-x-2">
               <Wand2 className="h-5 w-5 text-primary" />
               <span>生成工作台</span>
-              <Badge variant="outline" className="text-xs ml-2 bg-blue-50 text-blue-700 border-blue-200">
-                混元3D
+              <Badge variant="outline" className="text-xs ml-2 bg-green-50 text-green-700 border-green-200">
+                轻量级3D
               </Badge>
               {process.env.NODE_ENV === 'development' && (
                 <Badge variant="outline" className="text-xs ml-1">
@@ -208,8 +215,8 @@ export function GenerationWorkspace() {
                 <div className="text-xs text-muted-foreground">提示：详细的描述能帮助生成更准确的3D模型</div>
               </div>
 
-              {/* Recent Prompts */}
-              {recentPrompts.length > 0 && (
+              {/* Recent Prompts - 只在客户端显示 */}
+              {isClient && recentPrompts.length > 0 && (
                 <div className="space-y-2">
                   <Label>最近使用</Label>
                   <div className="flex flex-wrap gap-2">
@@ -350,6 +357,29 @@ export function GenerationWorkspace() {
                     <SelectItem value="fabric">布料</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">3D模型引擎</Label>
+              <Select value={modelType} onValueChange={setModelType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="shap-e">Shap-E (快速，2-4GB显存)</SelectItem>
+                  <SelectItem value="dreamgaussian">DreamGaussian (高质量，3-6GB显存)</SelectItem>
+                  <SelectItem value="instant3d">Instant3D (极速，3-4GB显存)</SelectItem>
+                  <SelectItem value="zero123">Zero-1-to-3 (图生3D，4-6GB显存)</SelectItem>
+                  <SelectItem value="pifu">PIFu (人物重建，2-4GB显存)</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground">
+                {modelType === 'shap-e' && '推荐：30秒-2分钟，适合大多数场景'}
+                {modelType === 'dreamgaussian' && '高质量：1-3分钟，使用高斯splatting技术'}
+                {modelType === 'instant3d' && '极速：10-30秒，适合实时应用'}
+                {modelType === 'zero123' && '图生3D：2-4分钟，从单图生成多视角'}
+                {modelType === 'pifu' && '人物专用：1-2分钟，专门优化人物重建'}
               </div>
             </div>
           </div>

@@ -1,205 +1,107 @@
-# 混元3D 2.0 Python服务
+# 轻量级3D生成服务
 
-基于官方文档实现的混元3D-DiT和混元3D-Paint模型服务。
+基于轻量级AI模型的3D生成服务，支持文本生成3D和图片生成3D。
 
-## 🚀 快速开始
+## 🚀 支持的模型
 
-### 1. 环境要求
+### 文本生成3D
+- **Shap-E**: OpenAI轻量级模型，2-4GB显存，30秒-2分钟
+- **DreamGaussian**: 高质量高斯splatting，3-6GB显存，1-3分钟
+- **Instant3D**: 极速生成，3-4GB显存，10-30秒
 
-- **Python**: 3.8+
-- **CUDA**: 11.8+ (推荐GPU加速)
-- **Docker**: 20.10+ (推荐)
-- **Docker Compose**: 2.0+
+### 图片生成3D
+- **Zero-1-to-3**: 单图多视角生成，4-6GB显存，2-4分钟
+- **PIFu**: 人物重建专用，2-4GB显存，1-2分钟
 
-### 2. 安装混元3D包
+## 📦 安装
 
-根据官方文档，需要先安装混元3D包：
-
-```bash
-# 方式一：使用安装脚本 (推荐)
-# Windows
-install_hunyuan3d.bat
-
-# Linux/Mac
-chmod +x install_hunyuan3d.sh
-./install_hunyuan3d.sh
-
-# 方式二：手动安装
-# 安装PyTorch (请根据您的CUDA版本选择)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-
-# 安装基础依赖
-pip install -r requirements.txt
-
-# 安装混元3D包
-cd hunyuan3d
-pip install -e .
-
-# 安装纹理生成组件
-cd hy3dgen/texgen/custom_rasterizer
-python setup.py install
-cd ../../..
-
-cd hy3dgen/texgen/differentiable_renderer
-python setup.py install
-cd ../../..
-```
-
-**注意**: 混元3D包已通过GitHub开源版本集成，无需申请访问权限。
-
-### 3. 启动服务
-
-#### 方式一：Docker (推荐)
-
+### 方法1: 使用安装脚本
 ```bash
 # Windows
-start.bat
+install_lightweight.bat
 
 # Linux/Mac
-./start.sh
-```
-
-#### 方式二：直接运行
-
-```bash
-# 安装依赖
 pip install -r requirements.txt
-
-# 启动服务
-python hunyuan3d_service.py
 ```
 
-### 4. 验证安装
-
-#### 测试混元3D集成
+### 方法2: 手动安装
 ```bash
-# 运行测试脚本
-python test_hunyuan3d.py
+pip install -r requirements.txt
 ```
 
-#### 启动服务
+## 🎯 启动服务
+
 ```bash
-# 启动服务
-python hunyuan3d_service.py
+python start_lightweight_service.py
 ```
 
-访问 http://localhost:8000 查看服务状态
+服务将在 `http://localhost:8001` 启动。
 
-## 📚 API文档
+## 🔧 API接口
 
-服务启动后，访问 http://localhost:8000/docs 查看完整的API文档。
-
-### 主要端点
-
-#### 生成3D几何模型
+### 获取服务状态
 ```
-POST /generate/geometry
+GET /
+```
+
+### 文本生成3D
+```
+POST /generate/text-to-3d
 {
-  "mode": "text-to-3d" | "image-to-3d",
-  "text_prompt": "一只可爱的猫咪",
-  "image_base64": "base64_encoded_image",
-  "options": {
-    "quality": 75,
-    "complexity": 50,
-    "style": "realistic",
-    "material": "default"
-  }
+  "prompt": "一只可爱的猫咪",
+  "model_type": "shap-e",
+  "quality": "medium",
+  "num_steps": 20
 }
 ```
 
-#### 生成纹理
+### 图片生成3D
 ```
-POST /generate/texture
+POST /generate/image-to-3d
 {
-  "mesh_file": "base64_encoded_mesh",
   "image_base64": "base64_encoded_image",
-  "options": {
-    "quality": 75,
-    "complexity": 50,
-    "style": "realistic",
-    "material": "default"
-  }
+  "model_type": "zero123",
+  "quality": "high"
 }
 ```
 
-#### 健康检查
+### 获取模型信息
 ```
-GET /health
+GET /models/info
 ```
 
-## 🔧 配置说明
-
-### 环境变量
-
-- `CUDA_VISIBLE_DEVICES`: 指定使用的GPU设备
-- `PYTHONPATH`: Python路径设置
-
-### 模型文件
-
-模型文件将自动下载到以下位置：
-- 几何生成模型: `~/.cache/huggingface/hub/models--tencent--Hunyuan3D-2/`
-- 纹理合成模型: `~/.cache/huggingface/hub/models--tencent--Hunyuan3D-2/`
-
-## 🐛 故障排除
-
-### 常见问题
-
-1. **模型加载失败**
-   - 检查网络连接
-   - 确认磁盘空间充足
-   - 验证CUDA环境
-
-2. **内存不足**
-   - 减少batch size
-   - 使用CPU模式
-   - 增加系统内存
-
-3. **Docker启动失败**
-   - 检查Docker Desktop是否运行
-   - 确认NVIDIA Docker支持
-   - 查看Docker日志
-
-### 日志查看
+## 🐳 Docker部署
 
 ```bash
-# Docker日志
-docker-compose logs -f
+# 构建镜像
+docker build -t lightweight-3d .
 
-# 服务日志
-tail -f outputs/service.log
+# 运行容器
+docker run -p 8001:8001 lightweight-3d
 ```
 
-## 📊 性能优化
-
-### GPU加速
-
-确保安装了正确的CUDA版本：
-
+或使用docker-compose:
 ```bash
-# 检查CUDA版本
-nvidia-smi
-
-# 安装对应版本的PyTorch
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+docker-compose up -d
 ```
 
-### 内存优化
+## 📝 注意事项
 
-- 使用较小的模型精度
-- 启用梯度检查点
-- 调整batch size
+1. 确保有足够的显存（推荐4GB+）
+2. 首次运行会自动下载模型文件
+3. 生成时间取决于模型复杂度和硬件配置
+4. 支持GPU加速（需要CUDA环境）
 
-## 🔒 安全注意事项
+## 🛠️ 开发
 
-- 服务仅在内网环境运行
-- 定期更新依赖包
-- 监控资源使用情况
-- 备份重要数据
+### 添加新模型
+1. 在 `lightweight_3d_service.py` 中添加模型加载逻辑
+2. 实现对应的生成函数
+3. 更新API接口
 
-## 📞 支持
-
-如有问题，请参考：
-- [混元3D官方文档](https://github.com/tencent/Hunyuan3D)
-- [PyTorch文档](https://pytorch.org/docs/)
-- [FastAPI文档](https://fastapi.tiangolo.com/)
-
+### 调试
+```bash
+# 启用详细日志
+export LOG_LEVEL=DEBUG
+python lightweight_3d_service.py
+```

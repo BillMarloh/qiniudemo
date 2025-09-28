@@ -1,8 +1,8 @@
 "use client"
 
-import { Suspense, useRef, useState, useEffect } from 'react'
+import { Suspense, useRef, useState, useEffect, Component, ReactNode } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, useGLTF } from '@react-three/drei'
+import { OrbitControls, ContactShadows, useGLTF } from '@react-three/drei'
 import { useModelStore } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,9 +44,16 @@ function Model({ url, hasModel }: { url: string; hasModel: boolean }) {
   }
 
   // 如果URL是GLTF格式，使用useGLTF加载
-  if (url.includes('.gltf') || url.includes('.glb')) {
+  if (url.includes('.gltf') || url.includes('.glb') || url.includes('/api/')) {
     try {
       const { scene } = useGLTF(url)
+      
+      // 确保模型居中并适当缩放
+      if (scene) {
+        scene.position.set(0, 0, 0)
+        scene.scale.setScalar(1)
+      }
+      
       return <primitive object={scene} ref={meshRef} />
     } catch (error) {
       console.error('Failed to load GLTF model:', error)
@@ -86,6 +93,48 @@ function LoadingFallback() {
   )
 }
 
+// 自定义错误边界组件
+interface ErrorBoundaryState {
+  hasError: boolean
+  error?: Error
+}
+
+class CanvasErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Canvas Error Boundary caught an error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-[400px] bg-muted/30 rounded-lg">
+          <div className="text-center">
+            <div className="text-muted-foreground mb-2">3D渲染错误</div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => this.setState({ hasError: false })}
+            >
+              重试
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 export function ThreeModelPreview() {
   const { modelData } = useModelStore()
   const [isRotating, setIsRotating] = useState(true)
@@ -103,24 +152,76 @@ export function ThreeModelPreview() {
     { value: "dae", label: "DAE" },
   ]
 
-  const handleDownload = () => {
+  const handleDownload = async (selectedFormat?: string) => {
     if (modelData?.modelUrl) {
-      // 模拟下载功能
-      toast.info(`开始下载: ${modelData.name}`)
+      const format = selectedFormat || modelData.format
+      toast.info(`开始下载: ${modelData.name} (${format.toUpperCase()})`)
       
-      // 实际应用中这里会下载真实的模型文件
+      try {
+        // 如果是GLB格式，直接下载
+        if (format === 'glb' || format === 'gltf') {
+          const link = document.createElement('a')
+          link.href = modelData.modelUrl
+          link.download = `${modelData.name}.${format}`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          // 其他格式需要转换
+          await convertAndDownloadModel(modelData.modelUrl, modelData.name, format)
+        }
+        
+        setTimeout(() => {
+          toast.success(`下载完成！格式: ${format.toUpperCase()}`)
+        }, 1000)
+      } catch (error) {
+        console.error('下载失败:', error)
+        toast.error('下载失败，请重试')
+      }
+    } else {
+      toast.error('没有可下载的模型')
+    }
+  }
+
+  // 模型格式转换和下载
+  const convertAndDownloadModel = async (modelUrl: string, modelName: string, targetFormat: string) => {
+    try {
+      // 这里应该调用后端API进行格式转换
+      const response = await fetch('/api/convert-model', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          modelUrl,
+          targetFormat,
+          modelName
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('格式转换失败')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = modelData.modelUrl
-      link.download = `${modelData.name}.${modelData.format}`
+      link.href = url
+      link.download = `${modelName}.${targetFormat}`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
-      setTimeout(() => {
-        toast.success('下载完成！')
-      }, 1000)
-    } else {
-      toast.error('没有可下载的模型')
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('格式转换失败:', error)
+      // 如果转换失败，下载原始格式
+      toast.warning(`格式转换失败，下载原始格式: ${modelData?.format}`)
+      const link = document.createElement('a')
+      link.href = modelUrl
+      link.download = `${modelName}.${modelData?.format}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
@@ -152,14 +253,19 @@ export function ThreeModelPreview() {
             <Badge variant={modelData ? "default" : "secondary"}>
               {modelData ? "已加载" : "等待生成"}
             </Badge>
-            {modelData?.provider === 'hunyuan3d' && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                混元3D
+            {modelData?.provider === 'lightweight-3d' && (
+              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                轻量级3D
               </Badge>
             )}
             {process.env.NODE_ENV === 'development' && (
               <Badge variant="outline" className="text-xs">
                 演示模式
+              </Badge>
+            )}
+            {modelData && (
+              <Badge variant="outline" className="text-xs">
+                {modelData.format?.toUpperCase() || 'GLB'}
               </Badge>
             )}
             <Button variant="ghost" size="sm">
@@ -171,22 +277,49 @@ export function ThreeModelPreview() {
       <CardContent className="space-y-6">
         {/* 3D Canvas */}
         <div className="relative bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg border border-border/50 overflow-hidden">
-          <Canvas
-            camera={{ position: [5, 5, 5], fov: 50 }}
-            style={{ height: '400px', width: '100%' }}
-          >
+          {/* 错误状态显示 */}
+          {modelData && (
+            <div className="absolute top-2 left-2 z-10">
+              <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 text-xs">
+                <span className="text-muted-foreground">模型: </span>
+                <span className="font-medium">{modelData.name}</span>
+              </div>
+            </div>
+          )}
+          
+          <CanvasErrorBoundary>
+            <Canvas
+              camera={{ position: [5, 5, 5], fov: 50 }}
+              style={{ height: '400px', width: '100%' }}
+              onCreated={({ gl }) => {
+                // 处理WebGL上下文丢失
+                gl.domElement.addEventListener('webglcontextlost', (event) => {
+                  event.preventDefault()
+                  console.warn('WebGL context lost')
+                })
+                
+                gl.domElement.addEventListener('webglcontextrestored', () => {
+                  console.log('WebGL context restored')
+                })
+              }}
+              gl={{ 
+                antialias: true,
+                alpha: true,
+                preserveDrawingBuffer: true
+              }}
+            >
             {/* 光照设置 */}
             <ambientLight intensity={lightIntensity[0] / 100} />
             <directionalLight position={[10, 10, 5]} intensity={1} />
             <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
-            {/* 环境 */}
-            <Environment preset="studio" />
+            {/* 移除Environment组件以避免加载立方体贴图文件 */}
 
             {/* 模型 */}
             <Suspense fallback={<LoadingFallback />}>
               <Model 
-                url={modelData?.modelUrl || '/api/demo-model.glb'} 
+                key={modelData?.id || 'default'} // 添加key确保重新渲染
+                url={modelData?.modelUrl || '/api/demo-model'} 
                 hasModel={!!modelData}
               />
             </Suspense>
@@ -208,7 +341,8 @@ export function ThreeModelPreview() {
               blur={2}
               far={4.5}
             />
-          </Canvas>
+            </Canvas>
+          </CanvasErrorBoundary>
 
           {/* 覆盖控制 */}
           <div className="absolute top-4 right-4 flex flex-col space-y-2">
@@ -351,7 +485,7 @@ export function ThreeModelPreview() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm">导出格式</Label>
-                <Select defaultValue="obj">
+                <Select defaultValue={modelData?.format || "glb"}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -381,9 +515,9 @@ export function ThreeModelPreview() {
               </div>
 
               <div className="grid grid-cols-1 gap-2">
-                <Button disabled={!modelData} onClick={handleDownload}>
+                <Button disabled={!modelData} onClick={() => handleDownload()}>
                   <Download className="h-4 w-4 mr-2" />
-                  下载模型
+                  下载模型 ({modelData?.format?.toUpperCase() || 'GLB'})
                 </Button>
                 <Button variant="outline" disabled={!modelData} onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
